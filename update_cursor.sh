@@ -16,6 +16,12 @@ DESKTOP_FILE="$HOME/.local/share/applications/cursor.desktop"  # Path to the .de
 
 echo "--- Starting Cursor Update ---"
 
+# Check if wget is installed
+if ! command -v wget &> /dev/null; then
+    echo "Error: wget is required but not installed. Install it with: sudo apt install wget (or equivalent for your distro)."
+    exit 1
+fi
+
 # Check if there's an existing AppImage with version number and rename it to latest
 if [ -d "$APP_DIR" ]; then
     EXISTING_APPIMAGE=$(find "$APP_DIR" -name "Cursor-*-x86_64.AppImage" -type f | head -n 1)
@@ -30,8 +36,8 @@ fi
 echo "Downloading latest version..."
 
 # Download the latest Cursor AppImage to a temporary location
-# -q flag makes wget quiet (no progress output)
-wget -q -O "$TEMP_APP_IMAGE" "$DOWNLOAD_URL"
+# -q flag makes wget quiet (no progress output), -L follows redirects
+wget -q -L -O "$TEMP_APP_IMAGE" "$DOWNLOAD_URL"
 
 # Make the downloaded AppImage executable
 chmod +x "$TEMP_APP_IMAGE"
@@ -47,9 +53,9 @@ if [ ! -f "$CURRENT_APP_IMAGE" ]; then
     # Update the .desktop file to point to the new AppImage
     if [ -f "$DESKTOP_FILE" ]; then
         echo "Updating .desktop file..."
-        # Use sed to replace the Exec line with the new path
-        sed -i "s|Exec=.*|Exec=$CURRENT_APP_IMAGE --no-sandbox|" "$DESKTOP_FILE"
-        echo "Desktop file updated successfully."
+        # Use sed to replace the Exec line with the new path, with backup
+        sed -i.bak "s|Exec=.*|Exec=$CURRENT_APP_IMAGE --no-sandbox|" "$DESKTOP_FILE"
+        echo "Desktop file updated successfully (backup created as $DESKTOP_FILE.bak)."
     fi
     
     echo "Installed successfully."
@@ -61,11 +67,11 @@ echo "Comparing versions..."
 # For existing installations, compare checksums to determine if an update is needed
 # Calculate SHA256 checksum of the current installed version
 CURRENT_CHECKSUM=$(sha256sum "$CURRENT_APP_IMAGE" | awk '{ print $1 }')
-echo "Current version checksum: ${CURRENT_CHECKSUM:0:8}..."
+echo "Current version checksum: $CURRENT_CHECKSUM"
 
 # Calculate SHA256 checksum of the newly downloaded version
 NEW_CHECKSUM=$(sha256sum "$TEMP_APP_IMAGE" | awk '{ print $1 }')
-echo "New version checksum: ${NEW_CHECKSUM:0:8}..."
+echo "New version checksum: $NEW_CHECKSUM"
 
 # Compare checksums to see if the versions are different
 if [ "$CURRENT_CHECKSUM" != "$NEW_CHECKSUM" ]; then
@@ -76,9 +82,9 @@ if [ "$CURRENT_CHECKSUM" != "$NEW_CHECKSUM" ]; then
     # Update the .desktop file to point to the new AppImage
     if [ -f "$DESKTOP_FILE" ]; then
         echo "Updating .desktop file..."
-        # Use sed to replace the Exec line with the new path
-        sed -i "s|Exec=.*|Exec=$CURRENT_APP_IMAGE --no-sandbox|" "$DESKTOP_FILE"
-        echo "Desktop file updated successfully."
+        # Use sed to replace the Exec line with the new path, with backup
+        sed -i.bak "s|Exec=.*|Exec=$CURRENT_APP_IMAGE --no-sandbox|" "$DESKTOP_FILE"
+        echo "Desktop file updated successfully (backup created as $DESKTOP_FILE.bak)."
     fi
     
     echo "Updated successfully."
